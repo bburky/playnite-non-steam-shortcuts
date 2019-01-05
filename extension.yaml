@@ -1,0 +1,8 @@
+Name: Non-Steam Shortcuts
+Author: Blake Burkhart
+Version: 0.1.0
+Module: nonsteam.py
+Type: Script
+Functions: 
+    - Description: Create non-Steam shortcuts for selected games
+      FunctionName: non_steam_shortcuts
