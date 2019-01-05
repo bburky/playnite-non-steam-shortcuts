@@ -4,6 +4,8 @@ This extension will automatically creates non-Steam shortcuts for the currently 
 
 Rerunning this extension is safe, it will update the shortcut with the information from the OtherAction titled "Launch without Steam".
 
+Warning: Any existing non-Steam shortcut with the same name (`AppName`) as a game in your Playnite library will be replaced with an updated shortcut. This allows updating shortcuts, but may potentially clobber some of your existing non-Steam shortcuts.
+
 This effectively allows using the Steam overlay for any game in Playnite.
 
 ## Installation
