@@ -248,6 +248,7 @@ import traceback
 
 import System.Guid as Guid
 from System.Collections.ObjectModel import ObservableCollection
+from System.IO import FileInfo, Path
 
 
 STEAM_PLUGIN_GUID = Guid.Parse("CB91DFC9-B977-43BF-8E70-55F46E410FAB")
@@ -414,10 +415,14 @@ def non_steam_shortcuts():
 
         # Create/Update Non-Steam shortcut
         play_action_expanded = PlayniteApi.ExpandGameVariables(game, play_action)
+        if play_action_expanded.WorkingDir:
+            start_dir = play_action_expanded.WorkingDir
+        else:
+            start_dir = FileInfo(play_action_expanded.Path).Directory.FullName
         shortcut = {
             "icon": PlayniteApi.Database.GetFullFilePath(game.Icon),
-            "exe": play_action_expanded.Path,
-            "StartDir": game.InstallDirectory,
+            "exe": '"{}"'.format(Path.Combine(start_dir, play_action_expanded.Path)),
+            "StartDir": '"{}"'.format(start_dir),
             "AppName": game.Name,
             "LaunchOptions": play_action_expanded.Arguments or "",
         }
