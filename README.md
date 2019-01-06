@@ -21,8 +21,13 @@ Select some games and chose "Extensions" → "Create non-Steam shortcuts for sel
 
 ## Sources used for shortcut.vdf reverse engineering
 
-*  https://github.com/CorporalQuesadilla/Steam-Shortcut-Manager/wiki/Steam-Shortcuts-Documentation
 *  https://github.com/tirish/steam-shortcut-editor/blob/master/lib/parser.js
+
+    Has a fairly easy to follow VDF parser. The `parseObjectValue()` function recursively calls everything else.
+
+*   https://github.com/CorporalQuesadilla/Steam-Shortcut-Manager/wiki/Steam-Shortcuts-Documentation
+
+    No code used other than the CRC algorithm, which is originally from https://github.com/scottrice/Ice (and is MIT licensed).
 
 ## Issues/TODO
 
