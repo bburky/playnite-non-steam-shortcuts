@@ -405,7 +405,7 @@ def non_steam_shortcuts():
 
         # Create/Update Non-Steam shortcut
         shortcut = {
-            "icon": game.Icon,
+            "icon": PlayniteApi.Database.GetFullFilePath(game.Icon),
             "exe": play_action.Path,
             "StartDir": game.InstallDirectory,
             "AppName": game.Name,
