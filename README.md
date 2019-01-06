@@ -28,6 +28,4 @@ Select some games and chose "Extensions" → "Create non-Steam shortcuts for sel
 
 Currently I can't figure out how to allow configuring a script extension. Please update `SHORTCUT_VDF_PATH` at the top of `nonsteam.py` manually to be the location of your `shortcuts.vdf` file.
 
-Probably should check if selected game is already a Steam game. We never want to make a non-Steam shortcut to a Steam game.
-
 Non-Steam shortcuts to games using emulators in Playnite are not working correctly.

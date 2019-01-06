@@ -244,10 +244,13 @@ import io
 import struct
 import shutil
 from collections import Counter
-from System.Collections.ObjectModel import ObservableCollection
 import traceback
-# import crc_algorithms
 
+import System.Guid as Guid
+from System.Collections.ObjectModel import ObservableCollection
+
+
+STEAM_PLUGIN_GUID = Guid.Parse("CB91DFC9-B977-43BF-8E70-55F46E410FAB")
 
 SHORTCUT_DEFAULTS = {
     "AllowOverlay": 1,
@@ -371,7 +374,8 @@ def find_play_action(game):
 def non_steam_shortcuts():
     games_updated = 0
     games_new = 0
-    games_skipped = []
+    games_skipped_no_action = []
+    games_skipped_steam_native = []
     games_url = []
 
     try:
@@ -396,7 +400,12 @@ def non_steam_shortcuts():
 
         # If a game somehow has no PlayAction, skip it
         if not play_action:
-            games_skipped.append(game.Name)
+            games_skipped_no_action.append(game.Name)
+            continue
+
+        # Skip the game if it is handled by the Steam plugin
+        if game.PluginId == STEAM_PLUGIN_GUID:
+            games_skipped_steam_native.append(game.Name)
             continue
 
         # If a game has a URL PlayAction, use it anyway but log it
@@ -454,9 +463,12 @@ def non_steam_shortcuts():
     message = "Please relaunch Steam to update non-Steam shortcuts!\n\n"
     message += "Updated {} existing non-Steam shortcuts\n".format(games_updated)
     message += "Created {} new non-Steam shortcuts".format(games_new)
-    if games_skipped:
-        message += "\n\nSkipped {} game(s) without any PlayAction set:\n".format(len(games_skipped))
-        message += "\n".join(games_skipped)
+    if games_skipped_steam_native:
+        message += "\n\nSkipped {} native Steam game(s):\n".format(len(games_skipped_steam_native))
+        message += "\n".join(games_skipped_steam_native)
+    if games_skipped_no_action:
+        message += "\n\nSkipped {} game(s) without any PlayAction set (not installed?):\n".format(len(games_skipped_no_action))
+        message += "\n".join(games_skipped_no_action)
     if games_url:
         message += "\n\nWarning: Some games had URL launch actions. (Typically managed by a library plugin.) "
         message += "You may wish to update their actions and recreate non-Steam shortcuts. "
