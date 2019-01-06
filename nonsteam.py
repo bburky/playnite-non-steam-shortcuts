@@ -404,12 +404,13 @@ def non_steam_shortcuts():
             games_url.append(game.Name)
 
         # Create/Update Non-Steam shortcut
+        play_action_expanded = PlayniteApi.ExpandGameVariables(game, play_action)
         shortcut = {
             "icon": PlayniteApi.Database.GetFullFilePath(game.Icon),
-            "exe": play_action.Path,
+            "exe": play_action_expanded.Path,
             "StartDir": game.InstallDirectory,
             "AppName": game.Name,
-            "LaunchOptions": play_action.Arguments or "",
+            "LaunchOptions": play_action_expanded.Arguments or "",
         }
         if game.Name in steam_shortcuts:
             games_updated += 1
