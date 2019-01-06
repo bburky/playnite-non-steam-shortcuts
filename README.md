@@ -28,9 +28,3 @@ Select some games and chose "Extensions" → "Create non-Steam shortcuts for sel
 *   https://github.com/CorporalQuesadilla/Steam-Shortcut-Manager/wiki/Steam-Shortcuts-Documentation
 
     No code used other than the CRC algorithm, which is originally from https://github.com/scottrice/Ice (and is MIT licensed).
-
-## Issues/TODO
-
-Currently I can't figure out how to allow configuring a script extension. Please update `SHORTCUT_VDF_PATH` at the top of `nonsteam.py` manually to be the location of your `shortcuts.vdf` file.
-
-Non-Steam shortcuts to games using emulators in Playnite are not working correctly.

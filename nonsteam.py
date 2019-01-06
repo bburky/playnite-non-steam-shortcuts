@@ -249,6 +249,12 @@ import traceback
 import System.Guid as Guid
 from System.Collections.ObjectModel import ObservableCollection
 from System.IO import FileInfo, Path
+from System import Array, Object
+
+import clr
+clr.AddReference("System.Core")
+import System
+clr.ImportExtensions(System.Linq)
 
 
 STEAM_PLUGIN_GUID = Guid.Parse("CB91DFC9-B977-43BF-8E70-55F46E410FAB")
@@ -372,11 +378,18 @@ def find_play_action(game):
                 return play_action
     return game.PlayAction
 
+def emulator_expand_variables(profile, game):
+    # HACK! Import EmulatorProfileExtensions with reflection
+    EmulatorProfileExtensions = PlayniteApi.GetType().Assembly.GetType("Playnite.EmulatorProfileExtensions")
+    method = EmulatorProfileExtensions.GetMethod("ExpandVariables")
+    return method.Invoke(None, Array[Object]((profile, game,)))
+
 def non_steam_shortcuts():
     games_updated = 0
     games_new = 0
     games_skipped_no_action = []
     games_skipped_steam_native = []
+    games_skipped_bad_emulator = []
     games_url = []
 
     try:
@@ -415,16 +428,39 @@ def non_steam_shortcuts():
 
         # Create/Update Non-Steam shortcut
         play_action_expanded = PlayniteApi.ExpandGameVariables(game, play_action)
-        if play_action_expanded.WorkingDir:
-            start_dir = play_action_expanded.WorkingDir
+        if play_action.EmulatorId != Guid.Empty:
+            emulator = PlayniteApi.Database.GetEmulator(play_action.EmulatorId)
+            if emulator.Profiles:
+                profile = emulator.Profiles.FirstOrDefault(lambda a: a.Id == play_action.EmulatorProfileId)
+            else:
+                profile = None
+            if not profile:
+                games_skipped_bad_emulator = []
+                continue
+            profile_expanded = emulator_expand_variables(profile, game)
+            start_dir = profile_expanded.WorkingDirectory
+            exe = profile_expanded.Executable
+            arguments = profile_expanded.Arguments or ""
+            if play_action_expanded.AdditionalArguments:
+                arguments += " " + play_action_expanded.AdditionalArguments
+            if play_action_expanded.OverrideDefaultArgs:
+                arguments = play_action_expanded.Arguments or ""
         else:
-            start_dir = FileInfo(play_action_expanded.Path).Directory.FullName
+            start_dir = play_action_expanded.WorkingDir
+            exe = play_action_expanded.Path
+            arguments = play_action_expanded.Arguments or ""
+        if not start_dir:
+            start_dir = FileInfo(exe).Directory.FullName
+        if game.Icon:
+            icon = PlayniteApi.Database.GetFullFilePath(game.Icon)
+        else:
+            icon = ""
         shortcut = {
-            "icon": PlayniteApi.Database.GetFullFilePath(game.Icon),
-            "exe": '"{}"'.format(Path.Combine(start_dir, play_action_expanded.Path)),
+            "icon": icon,
+            "exe": '"{}"'.format(Path.Combine(start_dir, exe)),
             "StartDir": '"{}"'.format(start_dir),
             "AppName": game.Name,
-            "LaunchOptions": play_action_expanded.Arguments or "",
+            "LaunchOptions": arguments,
         }
         if game.Name in steam_shortcuts:
             games_updated += 1
@@ -474,6 +510,9 @@ def non_steam_shortcuts():
     if games_skipped_no_action:
         message += "\n\nSkipped {} game(s) without any PlayAction set (not installed?):\n".format(len(games_skipped_no_action))
         message += "\n".join(games_skipped_no_action)
+    if games_skipped_bad_emulator:
+        message += "\n\nSkipped {} emulated game(s) with bad emulator profiles:\n".format(len(games_skipped_bad_emulator))
+        message += "\n".join(games_skipped_bad_emulator)
     if games_url:
         message += "\n\nWarning: Some games had URL launch actions. (Typically managed by a library plugin.) "
         message += "You may wish to update their actions and recreate non-Steam shortcuts. "
