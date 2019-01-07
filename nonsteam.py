@@ -240,7 +240,6 @@ class Crc(object):
 
 #### End crc_algorithms
 
-import io
 import struct
 import shutil
 from collections import Counter
@@ -401,7 +400,7 @@ def non_steam_shortcuts():
         return
 
     try:
-        with io.open(SHORTCUT_VDF_PATH, "rb") as f:
+        with open(SHORTCUT_VDF_PATH, "rb") as f:
             steam_shortcuts = parse_shortcuts(f)
     except Exception as e:
         PlayniteApi.Dialogs.ShowErrorMessage(
