@@ -427,7 +427,7 @@ def non_steam_shortcuts():
 
         # Create/Update Non-Steam shortcut
         play_action_expanded = PlayniteApi.ExpandGameVariables(game, play_action)
-        if play_action.EmulatorId != Guid.Empty:
+        if play_action_expanded.Type == GameActionType.Emulator:
             emulator = PlayniteApi.Database.GetEmulator(play_action.EmulatorId)
             if emulator.Profiles:
                 profile = emulator.Profiles.FirstOrDefault(lambda a: a.Id == play_action.EmulatorProfileId)
@@ -444,19 +444,25 @@ def non_steam_shortcuts():
                 arguments += " " + play_action_expanded.AdditionalArguments
             if play_action_expanded.OverrideDefaultArgs:
                 arguments = play_action_expanded.Arguments or ""
-        else:
+        elif play_action_expanded.Type == GameActionType.File:
             start_dir = play_action_expanded.WorkingDir
             exe = play_action_expanded.Path
             arguments = play_action_expanded.Arguments or ""
-        if not start_dir:
-            start_dir = FileInfo(exe).Directory.FullName
+        elif play_action_expanded.Type == GameActionType.URL:
+            exe = play_action_expanded.Path
+            start_dir = ""
+            arguments = ""
+        if not play_action_expanded.Type == GameActionType.URL:
+            if not start_dir:
+                start_dir = FileInfo(exe).Directory.FullName
+            exe = Path.Combine(start_dir, exe)
         if game.Icon:
             icon = PlayniteApi.Database.GetFullFilePath(game.Icon)
         else:
             icon = ""
         shortcut = {
             "icon": icon,
-            "exe": '"{}"'.format(Path.Combine(start_dir, exe)),
+            "exe": '"{}"'.format(exe),
             "StartDir": '"{}"'.format(start_dir),
             "AppName": game.Name,
             "LaunchOptions": arguments,
