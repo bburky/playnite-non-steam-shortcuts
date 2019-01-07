@@ -260,35 +260,38 @@ clr.ImportExtensions(System.Linq)
 STEAM_PLUGIN_GUID = Guid.Parse("CB91DFC9-B977-43BF-8E70-55F46E410FAB")
 
 SHORTCUT_DEFAULTS = {
-    "AllowOverlay": 1,
-    "AllowDesktopConfig": 1,
-    "ShortcutPath": "",
-    "IsHidden": 0,
-    "OpenVR": 0,
+    "allowoverlay": 1,
+    "allowdesktopconfig": 1,
+    "shortcutpath": "",
+    "ishidden": 0,
+    "openvr": 0,
     "tags": {},
-    "LastPlayTime": 0,
-    "Devkit": 0,
-    "DevkitGameID": "",
+    "lastplaytime": 0,
+    "devkit": 0,
+    "devkitgameid": "",
 }
 
 # Parse shortcuts.vdf
+# Steam matches keys case insensitively, so lowercase all keys to be case insensitive
 
 def parse_object(stream):
-    k = parse_string(stream)
+    k = parse_string(stream).lower()
+    # Read key value pairs until a \x08 byte is reached
     v = dict(iter(lambda: parse(stream), None))
     return k, v
 
 def parse_int_value(stream):
-    k = parse_string(stream)
+    k = parse_string(stream).lower()
     v, = struct.unpack("i", stream.read(4))
     return k, v
 
 def parse_string_value(stream):
-    k = parse_string(stream)
+    k = parse_string(stream).lower()
     v = parse_string(stream)
     return k, v
 
 def parse_string(stream):
+    # Strings are null terminated
     return "".join(iter(lambda: stream.read(1),"\x00"))
 
 parse_types = {
@@ -299,14 +302,15 @@ parse_types = {
 }
 
 def parse(stream):
+    # Read a per type one byte header, then parse using the correct type
     data_type = stream.read(1)
     return parse_types[data_type](stream)
 
 def parse_shortcuts(stream):
     shortcuts = parse(stream)[1].values()
-    if Counter(s["AppName"] for s in shortcuts).most_common()[0][1] > 1:
-        raise "Duplicate AppNames in Steam shortcuts"
-    return {s["AppName"]: s for s in shortcuts}
+    if Counter(s["appname"] for s in shortcuts).most_common()[0][1] > 1:
+        raise "Duplicate appnames in Steam shortcuts"
+    return {s["appname"]: s for s in shortcuts}
 
 # Dump shortcuts.vdf
 
@@ -359,7 +363,7 @@ def steam_URL(shortcut):
     # OSX. The reflect_in, reflect_out, and poly I figured out via trial and
     # error.
     algorithm = Crc(width = 32, poly = 0x04C11DB7, reflect_in = True, xor_in = 0xffffffff, reflect_out = True, xor_out = 0xffffffff)
-    input_string = shortcut["exe"] + shortcut["AppName"]
+    input_string = shortcut["exe"] + shortcut["appname"]
     top_32 = algorithm.bit_by_bit(input_string) | 0x80000000
     full_64 = (top_32 << 32) | 0x02000000
     return "steam://rungameid/" + str(full_64)
@@ -471,9 +475,9 @@ def non_steam_shortcuts():
         shortcut = {
             "icon": icon,
             "exe": '"{}"'.format(exe),
-            "StartDir": '"{}"'.format(start_dir),
-            "AppName": game.Name,
-            "LaunchOptions": arguments,
+            "startdir": '"{}"'.format(start_dir),
+            "appname": game.Name,
+            "launchoptions": arguments,
         }
         if game.Name in steam_shortcuts:
             games_updated += 1
