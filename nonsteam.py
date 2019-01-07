@@ -442,7 +442,7 @@ def non_steam_shortcuts():
             else:
                 profile = None
             if not profile:
-                games_skipped_bad_emulator = []
+                games_skipped_bad_emulator.append(game.Name)
                 continue
             profile_expanded = emulator_expand_variables(profile, game)
             start_dir = profile_expanded.WorkingDirectory
