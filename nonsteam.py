@@ -3,7 +3,8 @@
 # TODO: figure out how to make this configurable
 # Can prompt for a folder with PlayniteApi.Dialogs.SelectFolder()
 # But there is no way for an Extension to save configuration data?
-SHORTCUT_VDF_PATH = r"C:\Program Files (x86)\Steam\userdata\58546832\config\shortcuts.vdf"
+
+SHORTCUT_VDF_PATH = r"C:\Program Files (x86)\Steam\userdata\12345678\config\shortcuts.vdf"
 
 
 
@@ -390,6 +391,13 @@ def non_steam_shortcuts():
     games_skipped_steam_native = []
     games_skipped_bad_emulator = []
     games_url = []
+
+    if "12345678" in SHORTCUT_VDF_PATH:
+        PlayniteApi.Dialogs.ShowErrorMessage(
+            "Please configure this extension by setting the path to your Steam shortcuts.vdf file. "
+            "Edit the nonsteam.py file of this extension and update SHORTCUT_VDF_PATH",
+            "Error: Extension not configured")
+        return
 
     try:
         shutil.copyfile(SHORTCUT_VDF_PATH, SHORTCUT_VDF_PATH+".bak")
