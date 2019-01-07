@@ -17,7 +17,7 @@ This effectively allows using the Steam overlay for any game in Playnite.
 
 You should have a new folder in your `Extensions` folder called `playnite-non-steam-shortcuts` containing `extension.yaml` and `nonsteam.py`.
 
-Select some games and chose "Extensions" → "Create non-Steam shortcuts for selected games" in the menu.
+Select some games and chose "Extensions" → "Create non-Steam shortcuts for selected games" in the menu. Then relaunch Steam to update it's non-Steam shortcuts.
 
 ## Sources used for shortcut.vdf reverse engineering
 
