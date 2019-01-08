@@ -1,0 +1,4 @@
+{
+    "python.linting.enabled": true,
+    "python.pythonPath": "C:\\tools\\miniconda3\\envs\\py37\\python.exe"
+}

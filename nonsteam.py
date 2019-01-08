@@ -1,12 +1,15 @@
 # Non-Steam Shortcuts
 
-# TODO: figure out how to make this configurable
-# Can prompt for a folder with PlayniteApi.Dialogs.SelectFolder()
-# But there is no way for an Extension to save configuration data?
 
-SHORTCUT_VDF_PATH = r"C:\Program Files (x86)\Steam\userdata\12345678\config\shortcuts.vdf"
+# Please edit the following line to the location of your profile's Steam
+# userdata directory, including your steam user ID:
+# (Do not include a trailing backslash.)
+STEAM_USERDATA = r"C:\Program Files (x86)\Steam\userdata\12345678"
 
 
+
+# Do not edit anything below this line
+###############################################################################
 
 ### crc_algorithms.py (Playnite won't import python files)
 
@@ -245,6 +248,7 @@ import struct
 import shutil
 from collections import Counter
 import traceback
+from os.path import isdir, isfile, join
 
 import System.Guid as Guid
 from System.Collections.ObjectModel import ObservableCollection
@@ -270,6 +274,8 @@ SHORTCUT_DEFAULTS = {
     "devkit": 0,
     "devkitgameid": "",
 }
+
+SHORTCUTS_VDF = join(STEAM_USERDATA, "config", "shortcuts.vdf")
 
 # Parse shortcuts.vdf
 # Steam matches keys case insensitively, so lowercase all keys to be case insensitive
@@ -396,29 +402,32 @@ def non_steam_shortcuts():
     games_skipped_bad_emulator = []
     games_url = []
 
-    if "12345678" in SHORTCUT_VDF_PATH:
+    if not isdir(join(STEAM_USERDATA, "config")):
         PlayniteApi.Dialogs.ShowErrorMessage(
-            "Please configure this extension by setting the path to your Steam shortcuts.vdf file. "
-            "Edit the nonsteam.py file of this extension and update SHORTCUT_VDF_PATH",
+            "Please configure this extension by setting the path to your Steam profile's userdata folder. "
+            "Edit the nonsteam.py file of this extension and update STEAM_USERDATA.",
             "Error: Extension not configured")
         return
 
-    try:
-        shutil.copyfile(SHORTCUT_VDF_PATH, SHORTCUT_VDF_PATH+".bak")
-    except Exception as e:
-        PlayniteApi.Dialogs.ShowErrorMessage(
-            traceback.format_exc(),
-            "Error backing up shortcuts.vdf")
-        return
+    if isfile(SHORTCUTS_VDF):
+        try:
+            shutil.copyfile(SHORTCUTS_VDF, SHORTCUTS_VDF+".bak")
+        except Exception as e:
+            PlayniteApi.Dialogs.ShowErrorMessage(
+                traceback.format_exc(),
+                "Error backing up shortcuts.vdf")
+            return
 
-    try:
-        with open(SHORTCUT_VDF_PATH, "rb") as f:
-            steam_shortcuts = parse_shortcuts(f)
-    except Exception as e:
-        PlayniteApi.Dialogs.ShowErrorMessage(
-            traceback.format_exc(),
-            "Error loading shortcuts.vdf")
-        return
+        try:
+            with open(SHORTCUTS_VDF, "rb") as f:
+                steam_shortcuts = parse_shortcuts(f)
+        except Exception as e:
+            PlayniteApi.Dialogs.ShowErrorMessage(
+                traceback.format_exc(),
+                "Error loading shortcuts.vdf")
+            return
+    else:
+        steam_shortcuts = {}
 
     for game in PlayniteApi.MainView.SelectedGames:
         play_action = find_play_action(game)
@@ -510,7 +519,7 @@ def non_steam_shortcuts():
 
     # Save updated shortcuts.vdf
     try:
-        with open(SHORTCUT_VDF_PATH, "wb") as f:
+        with open(SHORTCUTS_VDF, "wb") as f:
             dump_shortcuts(f, steam_shortcuts)
     except Exception as e:
         PlayniteApi.Dialogs.ShowErrorMessage(

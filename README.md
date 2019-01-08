@@ -12,7 +12,7 @@ This effectively allows using the Steam overlay for any game in Playnite.
 
 1. [Download](https://github.com/bburky/playnite-non-steam-shortcuts/archive/master.zip) this extension
 2. Extract the extension into a new folder in your "Extensions" folder in your Playnite library.
-3. Update `SHORTCUT_VDF_PATH` at the top of `nonsteam.py` manually to be the location of your `shortcuts.vdf` file.
+3. Update `STEAM_USERDATA` at the top of `nonsteam.py` manually to be the location of your Steam profile's userdata directory, including your Steam ID.
 4. Relaunch Playnite or select "Tools" → "Reload Scripts".
 
 You should have a new folder in your `Extensions` folder called `playnite-non-steam-shortcuts` containing `extension.yaml` and `nonsteam.py`.
