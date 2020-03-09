@@ -249,6 +249,7 @@ import shutil
 from collections import Counter
 import traceback
 from os.path import isdir, isfile, join
+import os
 
 import System.Guid as Guid
 from System.Collections.ObjectModel import ObservableCollection
@@ -525,6 +526,17 @@ def non_steam_shortcuts():
         PlayniteApi.Dialogs.ShowErrorMessage(
             traceback.format_exc(),
             "Error saving shortcuts.vdf")
+        if isfile(SHORTCUTS_VDF+".bak"):
+            try:
+                shutil.copyfile(SHORTCUTS_VDF+".bak", SHORTCUTS_VDF)
+                PlayniteApi.Dialogs.ShowMessage(
+                    "Successfully restored shortcuts.vdf backup")
+            except Exception as e:
+                PlayniteApi.Dialogs.ShowErrorMessage(
+                    traceback.format_exc(),
+                    "Error restoring shortcuts.vdf backup")
+        else:
+            os.remove(SHORTCUTS_VDF)
         return
 
     message = "Please relaunch Steam to update non-Steam shortcuts!\n\n"
