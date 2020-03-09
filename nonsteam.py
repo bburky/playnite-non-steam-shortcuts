@@ -449,7 +449,7 @@ def non_steam_shortcuts():
         # Create/Update Non-Steam shortcut
         play_action_expanded = PlayniteApi.ExpandGameVariables(game, play_action)
         if play_action_expanded.Type == GameActionType.Emulator:
-            emulator = PlayniteApi.Database.GetEmulator(play_action.EmulatorId)
+            emulator = PlayniteApi.Database.Emulators.Get(play_action.EmulatorId)
             if emulator.Profiles:
                 profile = emulator.Profiles.FirstOrDefault(lambda a: a.Id == play_action.EmulatorProfileId)
             else:
