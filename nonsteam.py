@@ -299,7 +299,7 @@ def parse_string_value(stream):
 
 def parse_string(stream):
     # Strings are null terminated
-    return "".join(iter(lambda: stream.read(1),"\x00"))
+    return "".join(iter(lambda: stream.read(1),"\x00")).decode('utf-8')
 
 parse_types = {
     "\x00": parse_object,
@@ -323,7 +323,7 @@ def parse_shortcuts(stream):
 
 def dump_object_value(stream, k, values):
     stream.write("\x00")
-    stream.write(k)
+    stream.write(k.encode('utf8'))
     stream.write("\x00")
     for k, v in values.iteritems():
         if isinstance(v, dict):
@@ -340,14 +340,14 @@ def dump_object_value(stream, k, values):
 
 def dump_string_value(stream, k, v):
     stream.write("\x01")
-    stream.write(k)
+    stream.write(k.encode('utf-8'))
     stream.write("\x00")
-    stream.write(v)
+    stream.write(v.encode('utf-8'))
     stream.write("\x00")
 
 def dump_int_value(stream, k, v):
     stream.write("\x02")
-    stream.write(k)
+    stream.write(k.encode('utf-8'))
     stream.write("\x00")
     stream.write(struct.pack("i", v))
 
@@ -370,7 +370,7 @@ def steam_URL(shortcut):
     # OSX. The reflect_in, reflect_out, and poly I figured out via trial and
     # error.
     algorithm = Crc(width = 32, poly = 0x04C11DB7, reflect_in = True, xor_in = 0xffffffff, reflect_out = True, xor_out = 0xffffffff)
-    input_string = shortcut["exe"] + shortcut["appname"]
+    input_string = shortcut["exe"].encode('utf-8') + shortcut["appname"].encode('utf-8')
     top_32 = algorithm.bit_by_bit(input_string) | 0x80000000
     full_64 = (top_32 << 32) | 0x02000000
     return "steam://rungameid/" + str(full_64)
