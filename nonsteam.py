@@ -4,7 +4,7 @@
 # Please edit the following line to the location of your profile's Steam
 # userdata directory, including your steam user ID:
 # (Do not include a trailing backslash.)
-STEAM_USERDATA = r"C:\Program Files (x86)\Steam\userdata\12345678"
+STEAM_USERDATA = r"C:\Program Files (x86)\Steam\userdata\62180933"
 
 
 
@@ -435,16 +435,19 @@ def non_steam_shortcuts():
 
         # If a game somehow has no PlayAction, skip it
         if not play_action:
-            games_skipped_no_action.append(game.Name)
+            games_skipped_no_action.append(game.Name))
+            PlayniteApi.ILogger.Error("Non-Steam: Game {} has no PlayAction!").format(game.Name)
             continue
 
         # Skip the game if it is handled by the Steam plugin
         if game.PluginId == STEAM_PLUGIN_GUID:
+            PlayniteApi.ILogger.Error("Non-Steam: Game {} is already a Steam game!").format(game.Name)
             games_skipped_steam_native.append(game.Name)
             continue
 
         # If a game has a URL PlayAction, use it anyway but log it
         if play_action.Type == GameActionType.URL:
+            PlayniteApi.ILogger.Warn("Non-Steam: Game {} has a URL as PlayAction! (Steam Overlay won't be injected)").format(game.Name)
             games_url.append(game.Name)
 
         # Create/Update Non-Steam shortcut
@@ -544,19 +547,19 @@ def non_steam_shortcuts():
     message += "Created {} new non-Steam shortcuts".format(games_new)
     if games_skipped_steam_native:
         message += "\n\nSkipped {} native Steam game(s):\n".format(len(games_skipped_steam_native))
-        message += "\n".join(games_skipped_steam_native)
+        if (len(games_skipped_steam_native) < 10) message += "\n".join(games_skipped_steam_native)
     if games_skipped_no_action:
         message += "\n\nSkipped {} game(s) without any PlayAction set (not installed?):\n".format(len(games_skipped_no_action))
-        message += "\n".join(games_skipped_no_action)
+        if (len(games_skipped_no_action) < 10) message += "\n".join(games_skipped_no_action)
     if games_skipped_bad_emulator:
         message += "\n\nSkipped {} emulated game(s) with bad emulator profiles:\n".format(len(games_skipped_bad_emulator))
-        message += "\n".join(games_skipped_bad_emulator)
+        if (len(games_skipped_bad_emulator) < 10) message += "\n".join(games_skipped_bad_emulator)
     if games_url:
         message += "\n\nWarning: Some games had URL launch actions. (Typically managed by a library plugin.) "
         message += "You may wish to update their actions and recreate non-Steam shortcuts. "
         message += "Steam will still launch these games, but the Steam overlay will not function."
         message += "\n\nThe following {} game(s) had URL launch actions:\n".format(len(games_url))
-        message += "\n".join(games_url)
+        if (len(games_url) < 10) message += "\n".join(games_url)
     PlayniteApi.Dialogs.ShowMessage(
         message,
         "Updated Non-Steam Shortcuts"
