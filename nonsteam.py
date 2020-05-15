@@ -436,18 +436,18 @@ def non_steam_shortcuts():
         # If a game somehow has no PlayAction, skip it
         if not play_action:
             games_skipped_no_action.append(game.Name)
-            PlayniteApi.ILogger.Error("Non-Steam: Game {} has no PlayAction!").format(game.Name)
+            __logger.Error("Non-Steam: Game {} has no PlayAction!").format(game.Name)
             continue
 
         # Skip the game if it is handled by the Steam plugin
         if game.PluginId == STEAM_PLUGIN_GUID:
-            PlayniteApi.ILogger.Error("Non-Steam: Game {} is already a Steam game!").format(game.Name)
+            __logger.Error("Non-Steam: Game {} is already a Steam game!").format(game.Name)
             games_skipped_steam_native.append(game.Name)
             continue
 
         # If a game has a URL PlayAction, use it anyway but log it
         if play_action.Type == GameActionType.URL:
-            PlayniteApi.ILogger.Warn("Non-Steam: Game {} has a URL as PlayAction! (Steam Overlay won't be injected)").format(game.Name)
+            __logger.Warn("Non-Steam: Game {} has a URL as PlayAction! (Steam Overlay won't be injected)").format(game.Name)
             games_url.append(game.Name)
 
         # Create/Update Non-Steam shortcut
