@@ -4,7 +4,7 @@
 # Please edit the following line to the location of your profile's Steam
 # userdata directory, including your steam user ID:
 # (Do not include a trailing backslash.)
-STEAM_USERDATA = r"C:\Program Files (x86)\Steam\userdata\62180933"
+STEAM_USERDATA = r"C:\Program Files (x86)\Steam\userdata\12345678"
 
 
 
