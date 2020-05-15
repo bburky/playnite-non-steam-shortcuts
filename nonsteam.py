@@ -435,7 +435,7 @@ def non_steam_shortcuts():
 
         # If a game somehow has no PlayAction, skip it
         if not play_action:
-            games_skipped_no_action.append(game.Name))
+            games_skipped_no_action.append(game.Name)
             PlayniteApi.ILogger.Error("Non-Steam: Game {} has no PlayAction!").format(game.Name)
             continue
 
