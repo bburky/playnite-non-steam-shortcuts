@@ -5,8 +5,26 @@
 # (Do not include a trailing backslash.)
 STEAM_USERDATA = r"C:\Program Files (x86)\Steam\userdata\12345678"
 
+# Set the Steam category of imported games. Allows setting zero or more Steam
+# categories per game. Any existing steam categories when reimporting a game
+# are preserved.
+
+# CATEGORY_MAPPING is a lambda function that is passed a Playnite `Game` object:
+# https://playnite.link/docs/api/Playnite.SDK.Models.Game.html
+
+# Uncomment one of the sample lambda functions below, or write your own: 
+#   All imported shortcuts in one Playnite category:
+CATEGORY_MAPPING = lambda game: ["Playnite"]
+#   Each game in one per-source category ("Playnite", "Epic", "Twitch", etc.):
+# CATEGORY_MAPPING = lambda game: [game.Source.Name]
+#   Map each Playnite category to a Steam category:
+# CATEGORY_MAPPING = lambda game: [cat.Name for cat in game.categories]
+#   No Steam categories:
+# CATEGORY_MAPPING = lambda game: []
+
 # Default settings for entries in shortcuts.vdf
 # See https://github.com/CorporalQuesadilla/Steam-Shortcut-Manager/wiki/Steam-Shortcuts-Documentation
+# These settings are only applied to newly imported shortcuts (not updated shortcuts).
 # Be very careful if you change these settings, you can easily break this script here.
 SHORTCUT_DEFAULTS = {
     "allowoverlay": 1,
@@ -14,7 +32,6 @@ SHORTCUT_DEFAULTS = {
     "shortcutpath": "",
     "ishidden": 0,
     "openvr": 0,
-    "tags": {},
     "lastplaytime": 0,
     "devkit": 0,
     "devkitgameid": "",
@@ -98,6 +115,8 @@ def dump_object_value(stream, k, values):
     for k, v in values.iteritems():
         if isinstance(v, dict):
             dump_object_value(stream, k, v)
+        elif isinstance(v, set):
+            dump_set_value(stream, k, v)
         elif isinstance(v, str):
             dump_string_value(stream, k, v)
         elif isinstance(v, int):
@@ -107,6 +126,14 @@ def dump_object_value(stream, k, values):
         else:
             raise TypeError("Unrecognized type:", type(v))
     stream.write("\x08")
+
+def dump_set_value(stream, k, values):
+    # Convert a set to a dict with the list index as the keys.
+    # Importing lists is not implemented, they roundtrip fine as dicts.
+    dump_object_value(
+        stream,
+        k,
+        {str(k+1): v for k, v in enumerate(values)})
 
 def dump_string_value(stream, k, v):
     stream.write("\x01")
@@ -126,6 +153,10 @@ def dump_shortcuts(stream, shortcuts):
     # Originally it is a string of the index, but we use the AppName instead
     dump_object_value(stream, "shortcuts", shortcuts)
     stream.write("\x08")
+
+def json_debug(value):
+    import json
+    __logger.Debug(json.dumps(value))
 
 def steam_URL(shortcut):
     # Comments by Scott Rice:
@@ -203,6 +234,7 @@ def non_steam_shortcuts():
             return
     else:
         steam_shortcuts = {}
+    json_debug(steam_shortcuts)
 
     for game in PlayniteApi.MainView.SelectedGames:
         play_action = find_play_action(game)
@@ -265,9 +297,11 @@ def non_steam_shortcuts():
             "startdir": '"{}"'.format(start_dir),
             "appname": game.Name,
             "launchoptions": arguments,
+            "tags": set(CATEGORY_MAPPING(game)),
         }
         if game.Name in steam_shortcuts:
             games_updated += 1
+            shortcut["tags"] = shortcut["tags"].union(steam_shortcuts[game.Name]["tags"].values())
             steam_shortcuts[game.Name].update(shortcut)
             shortcut = steam_shortcuts[game.Name]
         else:
