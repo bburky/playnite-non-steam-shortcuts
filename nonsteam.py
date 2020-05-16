@@ -31,25 +31,23 @@ import traceback
 from os.path import isdir, isfile, join
 import os
 
+import clr
+import System
 import System.Guid as Guid
 from System.Collections.ObjectModel import ObservableCollection
 from System.IO import FileInfo, Path
 from System import Array, Object
 from System.Windows import MessageBoxButton, MessageBoxImage, MessageBoxResult
 
-import clr
 clr.AddReference("System.Core")
-import System
 clr.ImportExtensions(System.Linq)
 
-
 STEAM_PLUGIN_GUID = Guid.Parse("CB91DFC9-B977-43BF-8E70-55F46E410FAB")
-
-
 SHORTCUTS_VDF = join(STEAM_USERDATA, "config", "shortcuts.vdf")
 
 # Parse shortcuts.vdf
 # Steam matches keys case insensitively, so lowercase all keys to be case insensitive
+
 
 def parse_object(stream):
     k = parse_string(stream).lower()
@@ -57,19 +55,23 @@ def parse_object(stream):
     v = dict(iter(lambda: parse(stream), None))
     return k, v
 
+
 def parse_int_value(stream):
     k = parse_string(stream).lower()
-    v, = struct.unpack("i", stream.read(4))
+    (v,) = struct.unpack("i", stream.read(4))
     return k, v
+
 
 def parse_string_value(stream):
     k = parse_string(stream).lower()
     v = parse_string(stream)
     return k, v
 
+
 def parse_string(stream):
     # Strings are null terminated
-    return "".join(iter(lambda: stream.read(1),"\x00")).decode('utf-8')
+    return "".join(iter(lambda: stream.read(1), "\x00")).decode("utf-8")
+
 
 parse_types = {
     "\x00": parse_object,
@@ -78,10 +80,12 @@ parse_types = {
     "\x08": lambda stream: None,
 }
 
+
 def parse(stream):
     # Read a per type one byte header, then parse using the correct type
     data_type = stream.read(1)
     return parse_types[data_type](stream)
+
 
 def parse_shortcuts(stream):
     shortcuts = parse(stream)[1].values()
@@ -89,11 +93,13 @@ def parse_shortcuts(stream):
         raise "Duplicate appnames in Steam shortcuts"
     return {s["appname"]: s for s in shortcuts}
 
+
 # Dump shortcuts.vdf
+
 
 def dump_object_value(stream, k, values):
     stream.write("\x00")
-    stream.write(k.encode('utf8'))
+    stream.write(k.encode("utf8"))
     stream.write("\x00")
     for k, v in values.iteritems():
         if isinstance(v, dict):
@@ -108,24 +114,28 @@ def dump_object_value(stream, k, values):
             raise TypeError("Unrecognized type:", type(v))
     stream.write("\x08")
 
+
 def dump_string_value(stream, k, v):
     stream.write("\x01")
-    stream.write(k.encode('utf-8'))
+    stream.write(k.encode("utf-8"))
     stream.write("\x00")
-    stream.write(v.encode('utf-8'))
+    stream.write(v.encode("utf-8"))
     stream.write("\x00")
+
 
 def dump_int_value(stream, k, v):
     stream.write("\x02")
-    stream.write(k.encode('utf-8'))
+    stream.write(k.encode("utf-8"))
     stream.write("\x00")
     stream.write(struct.pack("i", v))
+
 
 def dump_shortcuts(stream, shortcuts):
     # Any string can be used as the key in shortcuts.vdf
     # Originally it is a string of the index, but we use the AppName instead
     dump_object_value(stream, "shortcuts", shortcuts)
     stream.write("\x08")
+
 
 def steam_URL(shortcut):
     # Comments by Scott Rice:
@@ -139,11 +149,19 @@ def steam_URL(shortcut):
     # got the xor_in and xor_out from disassembling the steamui library for
     # OSX. The reflect_in, reflect_out, and poly I figured out via trial and
     # error.
-    algorithm = Crc(width = 32, poly = 0x04C11DB7, reflect_in = True, xor_in = 0xffffffff, reflect_out = True, xor_out = 0xffffffff)
-    input_string = shortcut["exe"].encode('utf-8') + shortcut["appname"].encode('utf-8')
+    algorithm = Crc(
+        width=32,
+        poly=0x04C11DB7,
+        reflect_in=True,
+        xor_in=0xFFFFFFFF,
+        reflect_out=True,
+        xor_out=0xFFFFFFFF,
+    )
+    input_string = shortcut["exe"].encode("utf-8") + shortcut["appname"].encode("utf-8")
     top_32 = algorithm.bit_by_bit(input_string) | 0x80000000
     full_64 = (top_32 << 32) | 0x02000000
     return "steam://rungameid/" + str(full_64)
+
 
 def find_play_action(game):
     """
@@ -159,15 +177,20 @@ def find_play_action(game):
                 return play_action
     return game.PlayAction
 
+
 def emulator_expand_variables(profile, game):
     # HACK! Import EmulatorProfileExtensions with reflection
-    EmulatorProfileExtensions = PlayniteApi.GetType().Assembly.GetType("Playnite.EmulatorProfileExtensions")
+    EmulatorProfileExtensions = PlayniteApi.GetType().Assembly.GetType(
+        "Playnite.EmulatorProfileExtensions"
+    )
     method = EmulatorProfileExtensions.GetMethod("ExpandVariables")
     return method.Invoke(None, Array[Object]((profile, game,)))
+
 
 def open_playnite_log():
     path = join(PlayniteApi.Paths.ConfigurationPath, "playnite.log")
     os.startfile(path)
+
 
 def non_steam_shortcuts():
     games_updated = 0
@@ -181,16 +204,17 @@ def non_steam_shortcuts():
         PlayniteApi.Dialogs.ShowErrorMessage(
             "Please configure this extension by setting the path to your Steam profile's userdata folder. "
             "Edit the nonsteam.py file of this extension and update STEAM_USERDATA.",
-            "Error: Extension not configured")
+            "Error: Extension not configured",
+        )
         return
 
     if isfile(SHORTCUTS_VDF):
         try:
-            shutil.copyfile(SHORTCUTS_VDF, SHORTCUTS_VDF+".bak")
+            shutil.copyfile(SHORTCUTS_VDF, SHORTCUTS_VDF + ".bak")
         except Exception as e:
             PlayniteApi.Dialogs.ShowErrorMessage(
-                traceback.format_exc(),
-                "Error backing up shortcuts.vdf")
+                traceback.format_exc(), "Error backing up shortcuts.vdf"
+            )
             return
 
         try:
@@ -198,8 +222,8 @@ def non_steam_shortcuts():
                 steam_shortcuts = parse_shortcuts(f)
         except Exception as e:
             PlayniteApi.Dialogs.ShowErrorMessage(
-                traceback.format_exc(),
-                "Error loading shortcuts.vdf")
+                traceback.format_exc(), "Error loading shortcuts.vdf"
+            )
             return
     else:
         steam_shortcuts = {}
@@ -215,13 +239,17 @@ def non_steam_shortcuts():
 
         # Skip the game if it is handled by the Steam plugin
         if game.PluginId == STEAM_PLUGIN_GUID:
-            __logger.Warn("Non-Steam: Game is already a Steam game: {}".format(game.Name))
+            __logger.Warn(
+                "Non-Steam: Game is already a Steam game: {}".format(game.Name)
+            )
             games_skipped_steam_native.append(game.Name)
             continue
 
         # If a game has a URL PlayAction, use it anyway but log it
         if play_action.Type == GameActionType.URL:
-            __logger.Warn("Non-Steam: Game has a URL as PlayAction: {}".format(game.Name))
+            __logger.Warn(
+                "Non-Steam: Game has a URL as PlayAction: {}".format(game.Name)
+            )
             games_url.append(game.Name)
 
         # Create/Update Non-Steam shortcut
@@ -229,7 +257,9 @@ def non_steam_shortcuts():
         if play_action_expanded.Type == GameActionType.Emulator:
             emulator = PlayniteApi.Database.Emulators.Get(play_action.EmulatorId)
             if emulator.Profiles:
-                profile = emulator.Profiles.FirstOrDefault(lambda a: a.Id == play_action.EmulatorProfileId)
+                profile = emulator.Profiles.FirstOrDefault(
+                    lambda a: a.Id == play_action.EmulatorProfileId
+                )
             else:
                 profile = None
             if not profile:
@@ -301,29 +331,30 @@ def non_steam_shortcuts():
             dump_shortcuts(f, steam_shortcuts)
     except Exception as e:
         PlayniteApi.Dialogs.ShowErrorMessage(
-            traceback.format_exc(),
-            "Error saving shortcuts.vdf")
-        if isfile(SHORTCUTS_VDF+".bak"):
+            traceback.format_exc(), "Error saving shortcuts.vdf"
+        )
+        if isfile(SHORTCUTS_VDF + ".bak"):
             try:
-                shutil.copyfile(SHORTCUTS_VDF+".bak", SHORTCUTS_VDF)
+                shutil.copyfile(SHORTCUTS_VDF + ".bak", SHORTCUTS_VDF)
                 PlayniteApi.Dialogs.ShowMessage(
-                    "Successfully restored shortcuts.vdf backup")
+                    "Successfully restored shortcuts.vdf backup"
+                )
             except Exception as e:
                 PlayniteApi.Dialogs.ShowErrorMessage(
-                    traceback.format_exc(),
-                    "Error restoring shortcuts.vdf backup")
+                    traceback.format_exc(), "Error restoring shortcuts.vdf backup"
+                )
         else:
             os.remove(SHORTCUTS_VDF)
         return
 
     # Truncate long lists of games
-    if (len(games_skipped_steam_native) > 10):
+    if len(games_skipped_steam_native) > 10:
         games_skipped_steam_native = games_skipped_steam_native[:10] + ["[...]"]
-    if (len(games_skipped_no_action) > 10):
+    if len(games_skipped_no_action) > 10:
         games_skipped_no_action = games_skipped_no_action[:10] + ["[...]"]
-    if (len(games_skipped_bad_emulator) > 10):
+    if len(games_skipped_bad_emulator) > 10:
         games_skipped_bad_emulator = games_skipped_bad_emulator[:10] + ["[...]"]
-    if (len(games_url) > 10):
+    if len(games_url) > 10:
         games_url = games_url[:10] + ["[...]"]
 
     errors = False
@@ -331,22 +362,32 @@ def non_steam_shortcuts():
     message += "Updated {} existing non-Steam shortcuts\n".format(games_updated)
     message += "Created {} new non-Steam shortcuts".format(games_new)
     if games_skipped_steam_native:
-        message += "\n\nSkipped {} native Steam game(s):\n".format(len(games_skipped_steam_native))
+        message += "\n\nSkipped {} native Steam game(s):\n".format(
+            len(games_skipped_steam_native)
+        )
         message += "\n".join(games_skipped_steam_native)
         errors = True
     if games_skipped_no_action:
-        message += "\n\nSkipped {} game(s) without any PlayAction set (not installed?):\n".format(len(games_skipped_no_action))
+        message += "\n\nSkipped {} game(s) without any PlayAction set (not installed?):\n".format(
+            len(games_skipped_no_action)
+        )
         message += "\n".join(games_skipped_no_action)
         errors = True
     if games_skipped_bad_emulator:
-        message += "\n\nSkipped {} emulated game(s) with bad emulator profiles:\n".format(len(games_skipped_bad_emulator))
+        message += "\n\nSkipped {} emulated game(s) with bad emulator profiles:\n".format(
+            len(games_skipped_bad_emulator)
+        )
         message += "\n".join(games_skipped_bad_emulator)
         errors = True
     if games_url:
         message += "\n\nWarning: Some games had URL launch actions. (Typically managed by a library plugin.) "
-        message += "You may wish to update their actions and recreate non-Steam shortcuts. "
+        message += (
+            "You may wish to update their actions and recreate non-Steam shortcuts. "
+        )
         message += "Steam will still launch these games, but the Steam overlay will not function."
-        message += "\n\nThe following {} game(s) had URL launch actions:\n".format(len(games_url))
+        message += "\n\nThe following {} game(s) had URL launch actions:\n".format(
+            len(games_url)
+        )
         message += "\n".join(games_url)
         errors = True
     if errors:
@@ -355,15 +396,12 @@ def non_steam_shortcuts():
             message,
             "Updated Non-Steam Shortcuts",
             MessageBoxButton.YesNo,
-            MessageBoxImage.Error
+            MessageBoxImage.Error,
         )
         if show_log == MessageBoxResult.Yes:
             open_playnite_log()
     else:
-        PlayniteApi.Dialogs.ShowMessage(
-            message,
-            "Updated Non-Steam Shortcuts"
-        )
+        PlayniteApi.Dialogs.ShowMessage(message, "Updated Non-Steam Shortcuts")
 
 
 ###############################################################################
@@ -426,7 +464,16 @@ class Crc(object):
 
     # Class constructor
     ###############################################################################
-    def __init__(self, width, poly, reflect_in, xor_in, reflect_out, xor_out, table_idx_width = None):
+    def __init__(
+        self,
+        width,
+        poly,
+        reflect_in,
+        xor_in,
+        reflect_out,
+        xor_out,
+        table_idx_width=None,
+    ):
         """The Crc constructor.
 
         The parameters are as follows:
@@ -437,13 +484,13 @@ class Crc(object):
             reflect_out
             xor_out
         """
-        self.Width          = width
-        self.Poly           = poly
-        self.ReflectIn      = reflect_in
-        self.XorIn          = xor_in
-        self.ReflectOut     = reflect_out
-        self.XorOut         = xor_out
-        self.TableIdxWidth  = table_idx_width
+        self.Width = width
+        self.Poly = poly
+        self.ReflectIn = reflect_in
+        self.XorIn = xor_in
+        self.ReflectOut = reflect_out
+        self.XorOut = xor_out
+        self.TableIdxWidth = table_idx_width
 
         self.MSB_Mask = 0x1 << (self.Width - 1)
         self.Mask = ((self.MSB_Mask - 1) << 1) | 1
@@ -460,7 +507,6 @@ class Crc(object):
         else:
             self.CrcShift = 0
 
-
     # function __get_nondirect_init
     ###############################################################################
     def __get_nondirect_init(self, init):
@@ -471,12 +517,11 @@ class Crc(object):
         for i in range(self.Width):
             bit = crc & 0x01
             if bit:
-                crc^= self.Poly
+                crc ^= self.Poly
             crc >>= 1
             if bit:
                 crc |= self.MSB_Mask
         return crc & self.Mask
-
 
     # function reflect
     ###############################################################################
@@ -489,7 +534,6 @@ class Crc(object):
             data >>= 1
             x = (x << 1) | (data & 0x01)
         return x
-
 
     # function bit_by_bit
     ###############################################################################
@@ -512,14 +556,13 @@ class Crc(object):
 
         for i in range(self.Width):
             topbit = register & self.MSB_Mask
-            register = ((register << 1) & self.Mask)
+            register = (register << 1) & self.Mask
             if topbit:
                 register ^= self.Poly
 
         if self.ReflectOut:
             register = self.reflect(register, self.Width)
         return register ^ self.XorOut
-
 
     # function bit_by_bit_fast
     ###############################################################################
@@ -546,7 +589,6 @@ class Crc(object):
             register = self.reflect(register, self.Width)
         return register ^ self.XorOut
 
-
     # function gen_table
     ###############################################################################
     def gen_table(self):
@@ -567,12 +609,13 @@ class Crc(object):
                 if register & (self.MSB_Mask << self.CrcShift) != 0:
                     register = (register << 1) ^ (self.Poly << self.CrcShift)
                 else:
-                    register = (register << 1)
+                    register = register << 1
             if self.ReflectIn:
-                register = self.reflect(register >> self.CrcShift, self.Width) << self.CrcShift
+                register = (
+                    self.reflect(register >> self.CrcShift, self.Width) << self.CrcShift
+                )
             tbl[i] = register & (self.Mask << self.CrcShift)
         return tbl
-
 
     # function table_driven
     ###############################################################################
@@ -585,18 +628,28 @@ class Crc(object):
         register = self.DirectInit << self.CrcShift
         if not self.ReflectIn:
             for c in in_str:
-                tblidx = ((register >> (self.Width - self.TableIdxWidth + self.CrcShift)) ^ ord(c)) & 0xff
-                register = ((register << (self.TableIdxWidth - self.CrcShift)) ^ tbl[tblidx]) & (self.Mask << self.CrcShift)
+                tblidx = (
+                    (register >> (self.Width - self.TableIdxWidth + self.CrcShift))
+                    ^ ord(c)
+                ) & 0xFF
+                register = (
+                    (register << (self.TableIdxWidth - self.CrcShift)) ^ tbl[tblidx]
+                ) & (self.Mask << self.CrcShift)
             register = register >> self.CrcShift
         else:
-            register = self.reflect(register, self.Width + self.CrcShift) << self.CrcShift
+            register = (
+                self.reflect(register, self.Width + self.CrcShift) << self.CrcShift
+            )
             for c in in_str:
-                tblidx = ((register >> self.CrcShift) ^ ord(c)) & 0xff
-                register = ((register >> self.TableIdxWidth) ^ tbl[tblidx]) & (self.Mask << self.CrcShift)
+                tblidx = ((register >> self.CrcShift) ^ ord(c)) & 0xFF
+                register = ((register >> self.TableIdxWidth) ^ tbl[tblidx]) & (
+                    self.Mask << self.CrcShift
+                )
             register = self.reflect(register, self.Width + self.CrcShift) & self.Mask
 
         if self.ReflectOut:
             register = self.reflect(register, self.Width)
         return register ^ self.XorOut
+
 
 #### End crc_algorithms
