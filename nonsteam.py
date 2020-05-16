@@ -255,6 +255,7 @@ import System.Guid as Guid
 from System.Collections.ObjectModel import ObservableCollection
 from System.IO import FileInfo, Path
 from System import Array, Object
+from System.Windows import MessageBoxButton, MessageBoxImage, MessageBoxResult
 
 import clr
 clr.AddReference("System.Core")
@@ -395,6 +396,10 @@ def emulator_expand_variables(profile, game):
     method = EmulatorProfileExtensions.GetMethod("ExpandVariables")
     return method.Invoke(None, Array[Object]((profile, game,)))
 
+def open_playnite_log():
+    path = join(PlayniteApi.Paths.ConfigurationPath, "playnite.log")
+    os.startfile(path)
+
 def non_steam_shortcuts():
     games_updated = 0
     games_new = 0
@@ -436,15 +441,18 @@ def non_steam_shortcuts():
         # If a game somehow has no PlayAction, skip it
         if not play_action:
             games_skipped_no_action.append(game.Name)
+            __logger.Error("Non-Steam: Game has no PlayAction: {}".format(game.Name))
             continue
 
         # Skip the game if it is handled by the Steam plugin
         if game.PluginId == STEAM_PLUGIN_GUID:
+            __logger.Warn("Non-Steam: Game is already a Steam game: {}".format(game.Name))
             games_skipped_steam_native.append(game.Name)
             continue
 
         # If a game has a URL PlayAction, use it anyway but log it
         if play_action.Type == GameActionType.URL:
+            __logger.Warn("Non-Steam: Game has a URL as PlayAction: {}".format(game.Name))
             games_url.append(game.Name)
 
         # Create/Update Non-Steam shortcut
@@ -539,25 +547,51 @@ def non_steam_shortcuts():
             os.remove(SHORTCUTS_VDF)
         return
 
+    # Truncate long lists of games
+    if (len(games_skipped_steam_native) > 10):
+        games_skipped_steam_native = games_skipped_steam_native[:10] + ["[...]"]
+    if (len(games_skipped_no_action) > 10):
+        games_skipped_no_action = games_skipped_no_action[:10] + ["[...]"]
+    if (len(games_skipped_bad_emulator) > 10):
+        games_skipped_bad_emulator = games_skipped_bad_emulator[:10] + ["[...]"]
+    if (len(games_url) > 10):
+        games_url = games_url[:10] + ["[...]"]
+
+    errors = False
     message = "Please relaunch Steam to update non-Steam shortcuts!\n\n"
     message += "Updated {} existing non-Steam shortcuts\n".format(games_updated)
     message += "Created {} new non-Steam shortcuts".format(games_new)
     if games_skipped_steam_native:
         message += "\n\nSkipped {} native Steam game(s):\n".format(len(games_skipped_steam_native))
         message += "\n".join(games_skipped_steam_native)
+        errors = True
     if games_skipped_no_action:
         message += "\n\nSkipped {} game(s) without any PlayAction set (not installed?):\n".format(len(games_skipped_no_action))
         message += "\n".join(games_skipped_no_action)
+        errors = True
     if games_skipped_bad_emulator:
         message += "\n\nSkipped {} emulated game(s) with bad emulator profiles:\n".format(len(games_skipped_bad_emulator))
         message += "\n".join(games_skipped_bad_emulator)
+        errors = True
     if games_url:
         message += "\n\nWarning: Some games had URL launch actions. (Typically managed by a library plugin.) "
         message += "You may wish to update their actions and recreate non-Steam shortcuts. "
         message += "Steam will still launch these games, but the Steam overlay will not function."
         message += "\n\nThe following {} game(s) had URL launch actions:\n".format(len(games_url))
         message += "\n".join(games_url)
-    PlayniteApi.Dialogs.ShowMessage(
-        message,
-        "Updated Non-Steam Shortcuts"
-    )
+        errors = True
+    if errors:
+        message += "\n\nOpen playnite.log for full list of errors?"
+        show_log = PlayniteApi.Dialogs.ShowMessage(
+            message,
+            "Updated Non-Steam Shortcuts",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Error
+        )
+        if show_log == MessageBoxResult.Yes:
+            open_playnite_log()
+    else:
+        PlayniteApi.Dialogs.ShowMessage(
+            message,
+            "Updated Non-Steam Shortcuts"
+        )
