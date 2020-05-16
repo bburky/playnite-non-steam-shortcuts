@@ -1,10 +1,24 @@
 # Non-Steam Shortcuts
 
-
 # Please edit the following line to the location of your profile's Steam
 # userdata directory, including your steam user ID:
 # (Do not include a trailing backslash.)
 STEAM_USERDATA = r"C:\Program Files (x86)\Steam\userdata\12345678"
+
+# Default settings for entries in shortcuts.vdf
+# See https://github.com/CorporalQuesadilla/Steam-Shortcut-Manager/wiki/Steam-Shortcuts-Documentation
+# Be very careful if you change these settings, you can easily break this script here.
+SHORTCUT_DEFAULTS = {
+    "allowoverlay": 1,
+    "allowdesktopconfig": 1,
+    "shortcutpath": "",
+    "ishidden": 0,
+    "openvr": 0,
+    "tags": {},
+    "lastplaytime": 0,
+    "devkit": 0,
+    "devkitgameid": "",
+}
 
 
 # Do not edit anything below this line
@@ -31,17 +45,6 @@ clr.ImportExtensions(System.Linq)
 
 STEAM_PLUGIN_GUID = Guid.Parse("CB91DFC9-B977-43BF-8E70-55F46E410FAB")
 
-SHORTCUT_DEFAULTS = {
-    "allowoverlay": 1,
-    "allowdesktopconfig": 1,
-    "shortcutpath": "",
-    "ishidden": 0,
-    "openvr": 0,
-    "tags": {},
-    "lastplaytime": 0,
-    "devkit": 0,
-    "devkitgameid": "",
-}
 
 SHORTCUTS_VDF = join(STEAM_USERDATA, "config", "shortcuts.vdf")
 
