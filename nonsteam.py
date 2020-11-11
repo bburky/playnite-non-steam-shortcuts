@@ -1,10 +1,5 @@
 # Non-Steam Shortcuts
 
-# Please edit the following line to the location of your profile's Steam
-# userdata directory, including your steam user ID:
-# (Do not include a trailing backslash.)
-STEAM_USERDATA = r"C:\Program Files (x86)\Steam\userdata\12345678"
-
 # Default settings for entries in shortcuts.vdf
 # See https://github.com/CorporalQuesadilla/Steam-Shortcut-Manager/wiki/Steam-Shortcuts-Documentation
 # Be very careful if you change these settings, you can easily break this script here.
@@ -38,12 +33,50 @@ from System.Collections.ObjectModel import ObservableCollection
 from System.IO import FileInfo, Path
 from System import Array, Object
 from System.Windows import MessageBoxButton, MessageBoxImage, MessageBoxResult
+from Playnite.SDK.Plugins import ScriptGameMenuItem
 
 clr.AddReference("System.Core")
 clr.ImportExtensions(System.Linq)
 
 STEAM_PLUGIN_GUID = Guid.Parse("CB91DFC9-B977-43BF-8E70-55F46E410FAB")
-SHORTCUTS_VDF = join(STEAM_USERDATA, "config", "shortcuts.vdf")
+
+def get_gamemenu_items(menu_args):
+    menu_item = ScriptGameMenuItem()
+    menu_item.Description = "Create non-Steam shortcuts"
+    menu_item.FunctionName = "non_steam_shortcuts"
+    yield menu_item
+
+def validate_steam_userdata_dir(folder):
+    return folder and isdir(join(folder, "config"))
+
+def get_steam_userdata_dir():
+    config_path = join(CurrentExtensionDataPath, "steam_userdata_path")
+    folder = None
+
+    if isfile(config_path):
+        with open(config_path, "r") as f:
+            folder = f.read()
+
+    if validate_steam_userdata_dir(folder):
+        return folder
+    else:
+        PlayniteApi.Dialogs.ShowMessage(
+            "Please configure this extension by selecting your Steam profile's userdata folder. "
+            r"The userdata folder is typically at C:\Program Files (x86)\Steam\userdata\12345678 if Steam is installed on the C:\ drive. ",
+            "Extension not configured",
+        )
+        folder = PlayniteApi.Dialogs.SelectFolder()
+        if validate_steam_userdata_dir(folder):
+            with open(config_path, "w") as f:
+                f.write(folder)
+            return folder
+
+    PlayniteApi.Dialogs.ShowErrorMessage(
+        "Invalid userdata folder selected.",
+        "Extension not configured",
+    )
+    return None
+
 
 # Parse shortcuts.vdf
 # Steam matches keys case insensitively, so lowercase all keys to be case insensitive
@@ -192,7 +225,7 @@ def open_playnite_log():
     os.startfile(path)
 
 
-def non_steam_shortcuts():
+def non_steam_shortcuts(menu_args):
     games_updated = 0
     games_new = 0
     games_skipped_no_action = []
@@ -200,17 +233,15 @@ def non_steam_shortcuts():
     games_skipped_bad_emulator = []
     games_url = []
 
-    if not isdir(join(STEAM_USERDATA, "config")):
-        PlayniteApi.Dialogs.ShowErrorMessage(
-            "Please configure this extension by setting the path to your Steam profile's userdata folder. "
-            "Edit the nonsteam.py file of this extension and update STEAM_USERDATA.",
-            "Error: Extension not configured",
-        )
+    steam_userdata = get_steam_userdata_dir()
+    if not steam_userdata:
         return
 
-    if isfile(SHORTCUTS_VDF):
+    shortcuts_vdf = join(steam_userdata, "config", "shortcuts.vdf")
+
+    if isfile(shortcuts_vdf):
         try:
-            shutil.copyfile(SHORTCUTS_VDF, SHORTCUTS_VDF + ".bak")
+            shutil.copyfile(shortcuts_vdf, shortcuts_vdf + ".bak")
         except Exception as e:
             PlayniteApi.Dialogs.ShowErrorMessage(
                 traceback.format_exc(), "Error backing up shortcuts.vdf"
@@ -218,7 +249,7 @@ def non_steam_shortcuts():
             return
 
         try:
-            with open(SHORTCUTS_VDF, "rb") as f:
+            with open(shortcuts_vdf, "rb") as f:
                 steam_shortcuts = parse_shortcuts(f)
         except Exception as e:
             PlayniteApi.Dialogs.ShowErrorMessage(
@@ -228,7 +259,7 @@ def non_steam_shortcuts():
     else:
         steam_shortcuts = {}
 
-    for game in PlayniteApi.MainView.SelectedGames:
+    for game in menu_args.Games:
         play_action = find_play_action(game)
 
         # If a game somehow has no PlayAction, skip it
@@ -327,15 +358,15 @@ def non_steam_shortcuts():
 
     # Save updated shortcuts.vdf
     try:
-        with open(SHORTCUTS_VDF, "wb") as f:
+        with open(shortcuts_vdf, "wb") as f:
             dump_shortcuts(f, steam_shortcuts)
     except Exception as e:
         PlayniteApi.Dialogs.ShowErrorMessage(
             traceback.format_exc(), "Error saving shortcuts.vdf"
         )
-        if isfile(SHORTCUTS_VDF + ".bak"):
+        if isfile(shortcuts_vdf + ".bak"):
             try:
-                shutil.copyfile(SHORTCUTS_VDF + ".bak", SHORTCUTS_VDF)
+                shutil.copyfile(shortcuts_vdf + ".bak", shortcuts_vdf)
                 PlayniteApi.Dialogs.ShowMessage(
                     "Successfully restored shortcuts.vdf backup"
                 )
@@ -344,7 +375,7 @@ def non_steam_shortcuts():
                     traceback.format_exc(), "Error restoring shortcuts.vdf backup"
                 )
         else:
-            os.remove(SHORTCUTS_VDF)
+            os.remove(shortcuts_vdf)
         return
 
     # Truncate long lists of games
