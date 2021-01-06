@@ -34,6 +34,7 @@ from System.IO import FileInfo, Path
 from System import Array, Object
 from System.Windows import MessageBoxButton, MessageBoxImage, MessageBoxResult
 from Playnite.SDK.Plugins import ScriptGameMenuItem
+from shutil import copyfile
 
 clr.AddReference("System.Core")
 clr.ImportExtensions(System.Linq)
@@ -195,6 +196,30 @@ def steam_URL(shortcut):
     full_64 = (top_32 << 32) | 0x02000000
     return "steam://rungameid/" + str(full_64)
 
+def legacySteamID(shortcut):
+    # SteamGrid Images uses the Legacy 32 Steam ID. We get it here
+    # Comments by Scott Rice:
+    """
+    Calculates the filename for a given shortcut. This filename is a 64bit
+    integer, where the first 32bits are a CRC32 based off of the name and
+    target (with the added condition that the first bit is always high), and
+    the last 32bits are 0x02000000.
+    """
+    # This will seem really strange (where I got all of these values), but I
+    # got the xor_in and xor_out from disassembling the steamui library for
+    # OSX. The reflect_in, reflect_out, and poly I figured out via trial and
+    # error.
+    algorithm = Crc(
+        width=32,
+        poly=0x04C11DB7,
+        reflect_in=True,
+        xor_in=0xFFFFFFFF,
+        reflect_out=True,
+        xor_out=0xFFFFFFFF,
+    )
+    input_string = shortcut["exe"].encode("utf-8") + shortcut["appname"].encode("utf-8")
+    top_32 = algorithm.bit_by_bit(input_string) | 0x80000000
+    return str(top_32 )
 
 def find_play_action(game):
     """
@@ -238,6 +263,7 @@ def non_steam_shortcuts(menu_args):
         return
 
     shortcuts_vdf = join(steam_userdata, "config", "shortcuts.vdf")
+    shortcuts_images = join(steam_userdata, "config", "grid")
 
     if isfile(shortcuts_vdf):
         try:
@@ -336,6 +362,9 @@ def non_steam_shortcuts(menu_args):
             shortcut.update(SHORTCUT_DEFAULTS)
             steam_shortcuts[game.Name] = shortcut
 
+        # Copy Cover to grids folder
+        copyfile(PlayniteApi.Database.GetFullFilePath(game.CoverImage), shortcuts_images +"\\" + legacySteamID(shortcut) + "p.png")
+        
         # Update Playnite actions
         # Only run once, don't create duplicate OtherActions
         if play_action == game.PlayAction:
