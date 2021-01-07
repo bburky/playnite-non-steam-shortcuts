@@ -15,7 +15,6 @@ SHORTCUT_DEFAULTS = {
     "devkitgameid": "",
 }
 
-
 # Do not edit anything below this line
 
 
@@ -41,14 +40,17 @@ clr.ImportExtensions(System.Linq)
 
 STEAM_PLUGIN_GUID = Guid.Parse("CB91DFC9-B977-43BF-8E70-55F46E410FAB")
 
+
 def get_gamemenu_items(menu_args):
     menu_item = ScriptGameMenuItem()
     menu_item.Description = "Create non-Steam shortcuts"
     menu_item.FunctionName = "non_steam_shortcuts"
     yield menu_item
 
+
 def validate_steam_userdata_dir(folder):
     return folder and isdir(join(folder, "config"))
+
 
 def get_steam_userdata_dir():
     config_path = join(CurrentExtensionDataPath, "steam_userdata_path")
@@ -196,6 +198,7 @@ def steam_URL(shortcut):
     full_64 = (top_32 << 32) | 0x02000000
     return "steam://rungameid/" + str(full_64)
 
+
 def legacySteamID(shortcut):
     # SteamGrid Images uses the Legacy 32 Steam ID. We get it here
     # Comments by Scott Rice:
@@ -219,7 +222,8 @@ def legacySteamID(shortcut):
     )
     input_string = shortcut["exe"].encode("utf-8") + shortcut["appname"].encode("utf-8")
     top_32 = algorithm.bit_by_bit(input_string) | 0x80000000
-    return str(top_32 )
+    return str(top_32)
+
 
 def find_play_action(game):
     """
@@ -362,9 +366,12 @@ def non_steam_shortcuts(menu_args):
             shortcut.update(SHORTCUT_DEFAULTS)
             steam_shortcuts[game.Name] = shortcut
 
-        # Copy Cover to grids folder
-        copyfile(PlayniteApi.Database.GetFullFilePath(game.CoverImage), shortcuts_images +"\\" + legacySteamID(shortcut) + "p.png")
-        
+        # Copy Cover and Background to grids folder
+        copyfile(PlayniteApi.Database.GetFullFilePath(game.CoverImage),
+                 shortcuts_images + "\\" + legacySteamID(shortcut) + "p.png")
+        copyfile(PlayniteApi.Database.GetFullFilePath(game.BackgroundImage),
+                 shortcuts_images + "\\" + legacySteamID(shortcut) + "_hero.png")
+
         # Update Playnite actions
         # Only run once, don't create duplicate OtherActions
         if play_action == game.PlayAction:
@@ -515,6 +522,7 @@ This is an example use of the different algorithms:
 >>> print("0x%x" % crc.table_driven("123456789"))
 """
 
+
 # Class Crc
 ###############################################################################
 class Crc(object):
@@ -525,14 +533,14 @@ class Crc(object):
     # Class constructor
     ###############################################################################
     def __init__(
-        self,
-        width,
-        poly,
-        reflect_in,
-        xor_in,
-        reflect_out,
-        xor_out,
-        table_idx_width=None,
+            self,
+            width,
+            poly,
+            reflect_in,
+            xor_in,
+            reflect_out,
+            xor_out,
+            table_idx_width=None,
     ):
         """The Crc constructor.
 
@@ -672,7 +680,7 @@ class Crc(object):
                     register = register << 1
             if self.ReflectIn:
                 register = (
-                    self.reflect(register >> self.CrcShift, self.Width) << self.CrcShift
+                        self.reflect(register >> self.CrcShift, self.Width) << self.CrcShift
                 )
             tbl[i] = register & (self.Mask << self.CrcShift)
         return tbl
@@ -689,27 +697,26 @@ class Crc(object):
         if not self.ReflectIn:
             for c in in_str:
                 tblidx = (
-                    (register >> (self.Width - self.TableIdxWidth + self.CrcShift))
-                    ^ ord(c)
-                ) & 0xFF
+                                 (register >> (self.Width - self.TableIdxWidth + self.CrcShift))
+                                 ^ ord(c)
+                         ) & 0xFF
                 register = (
-                    (register << (self.TableIdxWidth - self.CrcShift)) ^ tbl[tblidx]
-                ) & (self.Mask << self.CrcShift)
+                                   (register << (self.TableIdxWidth - self.CrcShift)) ^ tbl[tblidx]
+                           ) & (self.Mask << self.CrcShift)
             register = register >> self.CrcShift
         else:
             register = (
-                self.reflect(register, self.Width + self.CrcShift) << self.CrcShift
+                    self.reflect(register, self.Width + self.CrcShift) << self.CrcShift
             )
             for c in in_str:
                 tblidx = ((register >> self.CrcShift) ^ ord(c)) & 0xFF
                 register = ((register >> self.TableIdxWidth) ^ tbl[tblidx]) & (
-                    self.Mask << self.CrcShift
+                        self.Mask << self.CrcShift
                 )
             register = self.reflect(register, self.Width + self.CrcShift) & self.Mask
 
         if self.ReflectOut:
             register = self.reflect(register, self.Width)
         return register ^ self.XorOut
-
 
 #### End crc_algorithms
