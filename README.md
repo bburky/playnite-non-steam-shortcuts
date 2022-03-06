@@ -1,3 +1,5 @@
+Please see [playnite-non-steam-shortcuts#26](https://github.com/bburky/playnite-non-steam-shortcuts/issues/26) for Playnite 9 status. This extension does NOT currently support Playnite 9.
+
 # Non-Steam Shortcut Extension for Playnite
 
 This extension will automatically creates non-Steam shortcuts for the currently selected games in Playnite. Multiple games can be highlighted to create multiple shortcuts at once. The game in Playnite will be modified to launch the game using Steam.
